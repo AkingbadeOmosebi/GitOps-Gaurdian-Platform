@@ -18,7 +18,7 @@ USER nginx
 # Expose nginx default port
 EXPOSE 80
 
-# Ensure package database fresh and upgrade pcre2 to fixed version, added for trivy scan.
+# Ensure package database fresh and upgrade pcre2 to fixed version, added for trivy scan..
 RUN apk update && \
     apk add --no-cache pcre2=10.46-r0
 
