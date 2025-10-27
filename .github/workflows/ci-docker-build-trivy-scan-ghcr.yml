@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_scan_push:
-    # Only run this job if the previous workflow (SonarCloud) was successful
+    # Only run this job if the previous workflow (SonarCloud) was successful..
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
