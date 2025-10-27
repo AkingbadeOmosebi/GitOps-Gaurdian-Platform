@@ -1,8 +1,22 @@
-# I will be using the Nginx alpine image as the base image
+# Updating my dockerfile butI will still be using the Nginx alpine image as the base image
+
+# Use minimal and secure nginx base image
 FROM nginx:alpine
 
-# to copy the contents of the current directory to the /usr/share/nginx/html directory in the container.
-COPY . /usr/share/nginx/html
+# Set working directory inside container
+WORKDIR /usr/share/nginx/html
 
-# i will expose port 80 from Nginx. This is the port that Nginx will listen on inside the container.
+# Copyin only necessary app files
+COPY . .
+
+# Change file ownership to nginx user for safety
+RUN chown -R nginx:nginx /usr/share/nginx/html
+
+# Drop privileges to non-root
+USER nginx
+
+# Expose nginx default port
 EXPOSE 80
+
+# Optional: Health check for container monitoring
+HEALTHCHECK CMD wget -q --spider http://localhost:80 || exit 1
