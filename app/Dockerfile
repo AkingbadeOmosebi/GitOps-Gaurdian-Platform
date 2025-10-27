@@ -11,7 +11,8 @@ COPY . .
 
 # Install packages for Trivy as root (before switching user)
 RUN apk update && \
-    apk add --no-cache pcre2=10.46-r0 wget
+    apk add --no-cache pcre2 wget && \
+    rm -rf /var/cache/apk/*
 
 # Change file ownership to nginx user for safety
 RUN chown -R nginx:nginx /usr/share/nginx/html
