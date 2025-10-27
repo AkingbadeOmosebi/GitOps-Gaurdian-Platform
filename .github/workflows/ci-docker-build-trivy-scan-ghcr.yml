@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: ["SonarCloud scan"]
     types: [completed]
-# This workflow only runs after the "CI - SonarCloud scan" workflow completes
+# This workflow only runs after the "SonarCloud scan" workflow completes
 
 jobs:
   build_scan_push:
@@ -12,129 +12,84 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
-    # Permissions needed for this job
     permissions:
-      contents: read      # Read repository contents
-      packages: write     # Write to GitHub Container Registry (GHCR)
+      contents: read
+      packages: write
 
-    # Environment variables used throughout the workflow
     env:
-      IMAGE_NAME: Coffee App
+      IMAGE_NAME: coffee-app  # fixed: lowercase, no spaces
 
     steps:
-      # Step 1: Fetches the repository code to the runner
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Get the last 2 commits so we can compare them
+          fetch-depth: 2
 
-      # Step 2: Set up variables for Docker registry, Git SHA, and version number
       - name: Set lowercase registry, short SHA, and SemVer
         run: |
-          # Convert GitHub repository owner to lowercase (Docker requires lowercase)
-          # Example: "AkingbadeOmosebi" becomes "akingbadeomosebi"
           REGISTRY=$(echo "ghcr.io/${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
-          
-          # Get first 7 characters of Git commit SHA for a short version
-          # Example: "a1b2c3d4e5f6g7h" becomes "a1b2c3d"
-          SHORT_SHA=${GITHUB_SHA::7}
-          
-          # Create semantic version using run number (auto-increments with each run)
-          # Example: Run #42 becomes version "1.0.42"
+          SHORT_SHA=${GITHUB_SHA:0:7}
           SEMVER="1.0.${{ github.run_number }}"
-          
-          # Save these variables so other steps can use them
           echo "REGISTRY=$REGISTRY" >> $GITHUB_ENV
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
           echo "SEMVER=$SEMVER" >> $GITHUB_ENV
 
-      # Step 3: Check if the app directory has any changes
       - name: Check if app code changed
         id: check_changes
         run: |
-          # Compare the current commit with the previous commit
-          # Focus only on changes in the ./app directory
-          if git diff --quiet HEAD^ HEAD -- ./app; then
-            # No changes found in app directory
-            echo " No changes detected in ./app directory"
-            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          # If there is no parent commit (first commit) treat as changed
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            if git diff --quiet HEAD^ HEAD -- ./app; then
+              echo "No changes detected in ./app"
+              echo "changes_detected=false" >> $GITHUB_OUTPUT
+            else
+              echo "Changes detected in ./app"
+              echo "changes_detected=true" >> $GITHUB_OUTPUT
+            fi
           else
-            # Changes found in app directory
-            echo " Changes detected in ./app directory"
+            echo "No parent commit found — treating as changed"
             echo "changes_detected=true" >> $GITHUB_OUTPUT
           fi
 
-      # Step 4: Build the Docker image
-      # This step ALWAYS runs, even if there are no changes
       - name: Build Docker image
+        if: steps.check_changes.outputs.changes_detected == 'true'   # build only when app changed
         run: |
-          # Build Docker image with three different tags:
-          # 1. Short SHA tag (e.g., ghcr.io/user/interview-app:a1b2c3d)
-          # 2. SemVer tag (e.g., ghcr.io/user/interview-app:1.0.42)
-          # 3. Latest tag (e.g., ghcr.io/user/interview-app:latest)
+          echo "Building Docker image..."
           docker build \
-            -t $REGISTRY/$IMAGE_NAME:$SHORT_SHA \
-            -t $REGISTRY/$IMAGE_NAME:$SEMVER \
-            -t $REGISTRY/$IMAGE_NAME:latest \
+            -t "$REGISTRY/$IMAGE_NAME:$SHORT_SHA" \
+            -t "$REGISTRY/$IMAGE_NAME:$SEMVER" \
+            -t "$REGISTRY/$IMAGE_NAME:latest" \
             ./app
-          
-          echo " Docker image built with tags:"
-          echo "   - $REGISTRY/$IMAGE_NAME:$SHORT_SHA"
-          echo "   - $REGISTRY/$IMAGE_NAME:$SEMVER"
-          echo "   - $REGISTRY/$IMAGE_NAME:latest"
+          echo "Built: $REGISTRY/$IMAGE_NAME:$SHORT_SHA"
+          echo "Built: $REGISTRY/$IMAGE_NAME:$SEMVER"
+          echo "Built: $REGISTRY/$IMAGE_NAME:latest"
 
-      # Step 5: Scan the Docker image for security vulnerabilities
-      # This step ALWAYS runs to ensure the image is secure
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@master
+        if: steps.check_changes.outputs.changes_detected == 'true'   # scan only when app changed / image built
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          # Scan the image we just built (using the 'latest' tag)
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          
-          # Output format (table = human nreadable table in logs)
           format: table
-          
-          # Exit code 1 means: fail the workflow if vulnerabilities are found
           exit-code: 1
-          
-          # Only fail on CRITICAL and HIGH severity vulnerabilities
-          # (MEDIUM and LOW vulnerabilities won't fail the build)
           severity: 'CRITICAL,HIGH'
 
-      # Step 6: Log in to GitHub Container Registry
-      # This step ONLY runs if changes were detected in the app directory
       - name: Log in to GitHub Container Registry
         if: steps.check_changes.outputs.changes_detected == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}          # Your GitHub username
-          password: ${{ secrets.GITHUB_TOKEN }}  # Automatically provided by GitHub
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 7: Push the Docker image to GHCR
-      # This step ONLY runs if:
-      # 1. Changes were detected in the app directory AND
-      # 2. Trivy scan passed (no CRITICAL/HIGH vulnerabilities)
       - name: Push Docker image to GHCR
         if: steps.check_changes.outputs.changes_detected == 'true'
         run: |
-          # Push all three tags to GitHub Container Registry
-          echo " Pushing images to GHCR..."
-          docker push $REGISTRY/$IMAGE_NAME:$SHORT_SHA
-          docker push $REGISTRY/$IMAGE_NAME:$SEMVER
-          docker push $REGISTRY/$IMAGE_NAME:latest
-          
-          # Print success message with the image locations
-          echo " Images pushed successfully to GHCR!"
-          echo " Available tags:"
-          echo "   - $REGISTRY/$IMAGE_NAME:$SHORT_SHA"
-          echo "   - $REGISTRY/$IMAGE_NAME:$SEMVER"
-          echo "   - $REGISTRY/$IMAGE_NAME:latest"
-          echo " View your images at: https://github.com/${{ github.repository }}/pkgs/container/$IMAGE_NAME"
+          echo "Pushing images to GHCR..."
+          docker push "$REGISTRY/$IMAGE_NAME:$SHORT_SHA"
+          docker push "$REGISTRY/$IMAGE_NAME:$SEMVER"
+          docker push "$REGISTRY/$IMAGE_NAME:latest"
+          echo "Images pushed: $REGISTRY/$IMAGE_NAME"
 
-      # Step 8: Notify if push was skipped
       - name: Notify - Push skipped
         if: steps.check_changes.outputs.changes_detected == 'false'
         run: |
-          echo " Docker image was built and scanned, but NOT pushed to GHCR"
-          echo "Reason: No changes detected in ./app directory"
-          echo "The image exists locally but was not published to the registry"
+          echo "Docker image was built/scanned but NOT pushed to GHCR — no changes in ./app"
