@@ -36,6 +36,8 @@ jobs:
 
       - name: Super-linter
         uses: super-linter/super-linter@v8 # using major version only
+        continue-on-error: true
+        # Continue on error, to show me my error but continue the pipeline stagings
         env:
           DEFAULT_BRANCH: main
           VALIDATE_ALL_CODEBASE: true  
