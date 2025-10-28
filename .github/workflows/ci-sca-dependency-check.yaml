@@ -5,18 +5,11 @@ on:
     workflows: ["SonarCloud scan"]
     types:
       - completed
-  schedule:
-    - cron: '0 2 * * 1'  # Weekly scan for newly disclosed CVEs
 
 jobs:
   dependency-check:
     runs-on: ubuntu-latest
     name: SCA - Dependency Vulnerability Scan
-    
-    # Grant permissions to write to GitHub Security tab
-    permissions:
-      contents: read
-      security-events: write
     
     steps:
       # Get the repository code
@@ -30,28 +23,17 @@ jobs:
         with:
           project: 'gitops-guardian-platform'
           path: './app'
-          # Generate multiple formats for different use cases
-          format: 'HTML,JSON,SARIF'
+          # Generate only HTML for human review and comprehendson
+          format: 'HTML'
           args: >
             --enableRetired
             --enableExperimental
             --failOnCVSS 7
-        # Note: First run downloads ~200MB NVD database (takes 5-10 min)
-        # Subsequent runs use cached data (takes 1-2 min)
       
-      # Save HTML report for manual review
-      - name: Upload HTML report as artifact
+      # Upload HTML report for manual review
+      - name: Upload scan report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: dependency-check-report
           path: ${{github.workspace}}/reports
-      
-      # Send SARIF report to GitHub Security tab
-      # This integrates findings into your repo's Security > Code scanning alerts
-      - name: Publish to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: ${{github.workspace}}/reports/dependency-check-report.sarif
-          # Results appear in: Repository → Security → Code scanning
