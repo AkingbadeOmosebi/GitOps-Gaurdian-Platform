@@ -1,7 +1,7 @@
 # Updating my dockerfile butI will still be using the Nginx alpine image as the base image
 
 # Use minimal and secure nginx base image
-FROM nginx:1.25.2-alpine
+FROM nginx:1.27-alpine
 
 # Set working directory inside container
 WORKDIR /usr/share/nginx/html
@@ -11,6 +11,7 @@ COPY . .
 
 # Install packages for Trivy as root (before switching user)
 RUN apk update && \
+    apk upgrade --no-cache && \
     apk add --no-cache pcre2 wget && \
     rm -rf /var/cache/apk/*
 
