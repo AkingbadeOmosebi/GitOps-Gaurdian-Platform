@@ -1,19 +1,16 @@
 name: Superlinter
 
-on: # to run on push and not on PR
-  push:
-    branches: [main]
-    paths:
-      - '**.js'
-      - '**.html'
-      - '**.css'
-      - '**.yml'
-      - '**.yaml'
-      - 'Dockerfile'
-  pull_request:
-    branches-ignore: [main]
+on:
+  workflow_run:
+    workflows: ["Secret Scanning"]
+    types: [completed]
 
-permissions: {}
+  # Im adding this block because i changed my mind and i want to throw in a prior essential pipeline
+  # This makes Superlinter wait until Secret Scanning passes successfully.
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -43,3 +40,12 @@ jobs:
           VALIDATE_ALL_CODEBASE: true  
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+        # I want to upload the details to artifact logs
+      - name: Upload Linter Logs 
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: superlinter-logs
+          path: /tmp/lint
