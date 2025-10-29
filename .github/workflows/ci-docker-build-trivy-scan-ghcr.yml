@@ -7,9 +7,21 @@ on:
   workflow_dispatch: {}   # optional manual trigger for testing
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug workflow_run event
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run name: ${{ github.event.workflow_run.name }}"
+          echo "Workflow run status: ${{ github.event.workflow_run.status }}"
+
+
   build_scan_push:
     # Only run this job if the previous workflow (OWASP Dependency-Check) was successful
     if: |
+      github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success' ||
       github.event.workflow_run.conclusion == 'skipped'
     runs-on: ubuntu-latest
