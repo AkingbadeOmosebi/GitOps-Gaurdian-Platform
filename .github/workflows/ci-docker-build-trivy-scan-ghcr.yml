@@ -4,12 +4,12 @@ on:
   workflow_run:
     workflows: ["ci-sca-dependency-check.yaml"]
     types: [completed]
-  workflow_dispatch: {}   # optional manual trigger for testing
+    branches: 
+      - main 
 
 jobs:
   build_scan_push:
     # Only run this job if the previous workflow (OWASP Dependency-Check) was successful
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
     permissions:
