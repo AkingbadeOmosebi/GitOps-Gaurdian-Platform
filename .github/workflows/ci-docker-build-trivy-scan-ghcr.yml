@@ -2,14 +2,16 @@ name: Build and Scan with Trivy
 
 on:
   workflow_run:
-    workflows: ["ci-sca-dependency-check.yaml"]
+    workflows: ["OWASP Dependency-Check"]
     types: [completed]
-    branches: 
-      - main 
+  workflow_dispatch: {}
 
 jobs:
   build_scan_push:
-    # Only run this job if the previous workflow (OWASP Dependency-Check) was successful
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == 'skipped'
     runs-on: ubuntu-latest
     
     permissions:
@@ -17,18 +19,10 @@ jobs:
       packages: write
 
     env:
-      IMAGE_NAME: coffee-app  # fixed: lowercase, no spaces
+      IMAGE_NAME: coffee-app
 
     steps:
-      - name: Debug Event Info
-        run: |
-          echo "Event name: ${{ github.event_name }}"
-          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
-          echo "Previous workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
-
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Set lowercase registry, short SHA, and SemVer
         run: |
@@ -39,25 +33,7 @@ jobs:
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
           echo "SEMVER=$SEMVER" >> $GITHUB_ENV
 
-      - name: Check if app code changed
-        id: check_changes
-        run: |
-          # If there is no parent commit (first commit) treat as changed
-          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
-            if git diff --quiet HEAD^ HEAD -- ./app; then
-              echo "No changes detected in ./app"
-              echo "changes_detected=false" >> $GITHUB_OUTPUT
-            else
-              echo "Changes detected in ./app"
-              echo "changes_detected=true" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "No parent commit found — treating as changed"
-            echo "changes_detected=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build Docker image
-        if: steps.check_changes.outputs.changes_detected == 'true'   # build only when app changed
         run: |
           echo "Building Docker image..."
           docker build \
@@ -70,7 +46,6 @@ jobs:
           echo "Built: $REGISTRY/$IMAGE_NAME:latest"
 
       - name: Run Trivy scan
-        if: steps.check_changes.outputs.changes_detected == 'true'   # scan only when app changed / image built
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
@@ -79,7 +54,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Log in to GitHub Container Registry
-        if: steps.check_changes.outputs.changes_detected == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -87,15 +61,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image to GHCR
-        if: steps.check_changes.outputs.changes_detected == 'true'
         run: |
           echo "Pushing images to GHCR..."
           docker push "$REGISTRY/$IMAGE_NAME:$SHORT_SHA"
           docker push "$REGISTRY/$IMAGE_NAME:$SEMVER"
           docker push "$REGISTRY/$IMAGE_NAME:latest"
-          echo "Images pushed: $REGISTRY/$IMAGE_NAME"
-
-      - name: Notify - Push skipped
-        if: steps.check_changes.outputs.changes_detected == 'false'
-        run: |
-          echo "Docker image was built/scanned but NOT pushed to GHCR — no changes in ./app"
+          echo "Images pushed successfully to $REGISTRY/$IMAGE_NAME"
