@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment      # Manfinest defifintion type.
 metadata:
-  name: interview-app
+  name: coffee-app
   namespace: default
 spec:
   replicas: 2     # How many instances or replicas of the app i want running at all times minimum
@@ -12,15 +12,15 @@ spec:
       maxSurge: 1
   selector:
     matchLabels:
-      app: interview-app
+      app: coffee-app
   template:
     metadata:
       labels:
-        app: interview-app
+        app: coffee-app
     spec:
       containers:
-        - name: interview-app         # Name of my container
-          image: ghcr.io/akingbadeomosebi/interview-app:latest     # Updated to work with new SemVer; ArgoCD Image Updater will replace this with the newest 1.0.x patch automatically
+        - name: coffee-app        # Name of my container
+          image: ghcr.io/akingbadeomosebi/coffee-app:latest     # Updated to work with new SemVer; ArgoCD Image Updater will replace this with the newest 1.0.x patch automatically
           ports:
             - containerPort: 80     #my container port, which i also defined in my service file
           resources:      # Limiting memeory consumption in my cluster, so it doesnt hoard memory.
