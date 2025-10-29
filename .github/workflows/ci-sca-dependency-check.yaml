@@ -5,6 +5,7 @@ on:
     workflows: ["SonarCloud scan"]
     types:
       - completed
+  workflow_dispatch: {}  # optional manual trigger for testing / retriggering
 
 jobs:
   dependency-check:
@@ -24,7 +25,7 @@ jobs:
         with:
           project: 'gitops-guardian-platform'
           path: './app'
-          # Generate only HTML for human review and comprehendson
+          # Generate only HTML for human review and comprehension
           format: 'HTML'
           args: >
             --enableRetired

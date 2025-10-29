@@ -6,11 +6,9 @@ on:
     types: [completed]
   workflow_dispatch: {}   # optional manual trigger for testing
 
-# This workflow only runs after the "OWASP Dependency-Check" workflow completes
-
 jobs:
   build_scan_push:
-    # Only run this job if the previous workflow (OWASP Dependency-Check) was successful..
+    # Only run this job if the previous workflow (OWASP Dependency-Check) was successful
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
