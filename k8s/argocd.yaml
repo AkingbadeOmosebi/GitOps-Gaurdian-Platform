@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: interview-app
+  name: coffee-app
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: interview-app=ghcr.io/akingbadeomosebi/interview-app
-    argocd-image-updater.argoproj.io/interview-app.update-strategy: semver:~1.0
+    argocd-image-updater.argoproj.io/image-list: coffee-app=ghcr.io/akingbadeomosebi/coffee-app
+    argocd-image-updater.argoproj.io/coffee-app.update-strategy: semver:~1.0
     # Using semver strategy: picks latest 1.0.x automatically
-    argocd-image-updater.argoproj.io/interview-app.force-update: "true"
+    argocd-image-updater.argoproj.io/coffee-app.force-update: "true"
     argocd-image-updater.argoproj.io/write-back-method: git
     # ensuring git gets to trace and track argocd image updater releases as well.
     argocd-image-updater.argoproj.io/git-https-username-secret: argocd-image-updater-git
@@ -16,7 +16,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/AkingbadeOmosebi/interview.git
+    repoURL: https://github.com/AkingbadeOmosebi/GitOps-Gaurdian-Platform
     targetRevision: main
     path: k8s
   destination:
