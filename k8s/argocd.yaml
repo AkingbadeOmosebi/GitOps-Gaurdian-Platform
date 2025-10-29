@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: interview-app
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: interview-app=ghcr.io/akingbadeomosebi/interview-app
+    argocd-image-updater.argoproj.io/interview-app.update-strategy: semver:~1.0
+    # Using semver strategy: picks latest 1.0.x automatically
+    argocd-image-updater.argoproj.io/interview-app.force-update: "true"
+    argocd-image-updater.argoproj.io/write-back-method: git
+    # ensuring git gets to trace and track argocd image updater releases as well.
+    argocd-image-updater.argoproj.io/git-https-username-secret: argocd-image-updater-git
+    argocd-image-updater.argoproj.io/git-https-password-secret: argocd-image-updater-git
+    # from the token created in developers setting for argcdo image updater to interact with git whenever it deploys a new image
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AkingbadeOmosebi/interview.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
