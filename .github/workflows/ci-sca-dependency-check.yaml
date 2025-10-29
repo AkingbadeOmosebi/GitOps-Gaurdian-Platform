@@ -5,7 +5,7 @@ on:
     workflows: ["SonarCloud scan"]
     types:
       - completed
-  workflow_dispatch: {}  # optional manual trigger for testing / retriggering
+  workflow_dispatch: {}  # manual trigger for testing
 
 jobs:
   dependency-check:
@@ -17,6 +17,11 @@ jobs:
       # Get the repository code
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # Ensure reports directory exists so upload step won't fail silently
+      - name: Prepare reports directory
+        run: |
+          mkdir -p "${{ github.workspace }}/reports"
       
       # Scan dependencies for known vulnerabilities
       - name: Run OWASP Dependency-Check
@@ -39,4 +44,4 @@ jobs:
         if: always()
         with:
           name: dependency-check-report
-          path: ${{github.workspace}}/reports
+          path: ${{ github.workspace }}/reports
