@@ -15,8 +15,9 @@ RUN apk update && \
     apk add --no-cache pcre2 wget && \
     rm -rf /var/cache/apk/*
 
-# Change file ownership to nginx user for safety
-RUN chown -R nginx:nginx /usr/share/nginx/html
+# Fix permissions for nginx runtime directories
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx && \
+    chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/run /var/log/nginx
 
 # Drop privileges to non-root
 USER nginx
