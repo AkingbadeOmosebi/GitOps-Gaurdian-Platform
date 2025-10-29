@@ -64,8 +64,8 @@ jobs:
 
         # I want to upload the details to artifact logs
       - name: Upload Linter Logs 
-        if: always()
+        if: always() && steps.check_changes.outputs.changes_detected == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: superlinter-logs
-          path: /tmp/lint
+          path: super-linter.log
