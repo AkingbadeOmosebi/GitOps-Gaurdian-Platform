@@ -2,7 +2,7 @@ name: Build and Scan with Trivy
 
 on:
   workflow_run:
-    workflows: ["OWASP Dependency-Check"]
+    workflows: ["OWASP Scan"]
     types: [completed]
   workflow_dispatch: {}
 
