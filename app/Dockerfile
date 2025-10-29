@@ -6,7 +6,7 @@ FROM nginx:1.27-alpine
 # Set working directory inside container
 WORKDIR /usr/share/nginx/html
 
-# Copyin only necessary app files
+# Copyin only necessary app files..
 COPY . .
 
 # Install packages for Trivy as root (before switching user)
