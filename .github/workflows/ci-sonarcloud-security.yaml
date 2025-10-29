@@ -39,6 +39,7 @@ jobs:
           fi            
       
       - name: Debug - Check directory structure
+        if: steps.check_changes.outputs.changes_detected == 'true'
         run: |
               echo "Current directory:"
               pwd
@@ -56,6 +57,7 @@ jobs:
       # If your sonar-project.properties is at the repo root,
       # the action will pick it up automatically.
       - name: Run Sonar (SonarCloud / SonarQube)
+        if: steps.check_changes.outputs.changes_detected == 'true'
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
