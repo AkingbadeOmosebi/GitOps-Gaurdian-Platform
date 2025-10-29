@@ -2,13 +2,13 @@ name: Build and Scan with Trivy
 
 on:
   workflow_run:
-    workflows: ["SonarCloud scan"]
+    workflows: ["OWASP Dependency-Check"]
     types: [completed]
-# This workflow only runs after the "SonarCloud scan" workflow completes
+# This workflow only runs after the "OWASP Dependency-Check" workflow completes
 
 jobs:
   build_scan_push:
-    # Only run this job if the previous workflow (SonarCloud) was successful..
+    # Only run this job if the previous workflow (OWASP Dependency-Check) was successful..
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
