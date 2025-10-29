@@ -24,6 +24,7 @@ jobs:
       statuses: write
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v5
         with:
@@ -31,7 +32,26 @@ jobs:
           # list of files that changed across commits
           fetch-depth: 0
 
+      - name: Check if app code changed
+        id: check_changes
+        run: |
+          # If there is no parent commit (first commit) treat as changed
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            if git diff --quiet HEAD^ HEAD -- ./app; then
+              echo "No changes detected in ./app"
+              echo "changes_detected=false" >> $GITHUB_OUTPUT
+            else
+              echo "Changes detected in ./app"
+              echo "changes_detected=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No parent commit found — treating as changed"
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+          fi      
+
       - name: Super-linter
+          # Run only if the check_changes outputs is true, meaning only if there are changes in fdoler ./app
+        if: steps.check_changes.outputs.changes_detected == 'true'
         uses: super-linter/super-linter@v8 # using major version only
         continue-on-error: true
         # Continue on error, to show me my error but continue the pipeline stagings
