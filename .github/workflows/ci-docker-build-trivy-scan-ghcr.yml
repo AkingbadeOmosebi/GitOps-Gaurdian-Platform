@@ -2,7 +2,7 @@ name: Build and Scan with Trivy
 
 on:
   workflow_run:
-    workflows: ["OWASP Dependency-Check"]
+    workflows: ["ci-sca-dependency-check.yaml"]
     types: [completed]
   workflow_dispatch: {}   # optional manual trigger for testing
 
